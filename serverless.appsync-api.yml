@@ -1,12 +1,18 @@
 name: appsyncplaybackend
 schema: schema.api.graphql
+caching: ${self:custom.appSyncCaching.${self:custom.stage}, self:custom.appSyncCaching.default}
 authenticationType: AMAZON_COGNITO_USER_POOLS
 userPoolConfig:
   awsRegion: eu-west-1
   defaultAction: ALLOW
   userPoolId: !Ref CognitoUserPool
+additionalAuthenticationProviders:
+  - authenticationType: AWS_IAM
 mappingTemplateLocation: mapping-templates
 mappingTemplates:
+  - type: Subscription
+    field: onNotified
+    dataSource: none
   # QUERIES
   - type: Query
     field: getMyProfile
@@ -14,6 +20,10 @@ mappingTemplates:
   - type: Query
     field: getProfile
     dataSource: usersTable
+    caching:
+      keys:
+        - $context.arguments.screenName
+      ttl: 300
   - type: Query
     field: getImageUploadUrl
     dataSource: getImageUploadUrlFunction
@@ -44,6 +54,22 @@ mappingTemplates:
       - hydrateFollowing
     request: simplePipeline.request.vtl
     response: simplePipeline.response.vtl
+  - type: Query
+    field: search
+    dataSource: searchFunction
+    request: false
+    response: false
+  - type: Query
+    field: getHashTag
+    dataSource: getHashTagFunction
+    request: false
+    response: false
+  - type: Query
+    field: listConversations
+    dataSource: conversationsTable
+  - type: Query
+    field: getDirectMessages
+    dataSource: directMessagesTable
 
   # MUTATIONS
   - type: Mutation
@@ -81,21 +107,58 @@ mappingTemplates:
   - type: Mutation
     field: unfollow
     dataSource: unfollowMutation
+  - type: Mutation
+    field: notifyRetweeted
+    dataSource: notificationsTable
+  - type: Mutation
+    field: notifyLiked
+    dataSource: notificationsTable
+  - type: Mutation
+    field: notifyDMed
+    dataSource: notificationsTable
+  - type: Mutation
+    field: notifyMentioned
+    dataSource: notificationsTable
+  - type: Mutation
+    field: notifyReplied
+    dataSource: notificationsTable
+  - type: Mutation
+    field: sendDirectMessage
+    dataSource: sendDirectMessageFunction
+    request: false
+    response: false
 
   # NESTED FIELDS
   - type: Tweet
     field: profile
-    dataSource: usersTable
+    dataSource: getTweetCreatorFunction
+    request: Tweet.profile.batchInvoke.request.vtl
+    response: Tweet.profile.batchInvoke.response.vtl
+    caching:
+      keys:
+        - $context.identity.username
+        - $context.source.creator
+      ttl: 300
   - type: Retweet
     field: profile
-    dataSource: usersTable
-    request: Tweet.profile.request.vtl
-    response: Tweet.profile.response.vtl
+    dataSource: getTweetCreatorFunction
+    request: Tweet.profile.batchInvoke.request.vtl
+    response: Tweet.profile.batchInvoke.response.vtl
+    caching:
+      keys:
+        - $context.identity.username
+        - $context.source.creator
+      ttl: 300
   - type: Reply
     field: profile
-    dataSource: usersTable
-    request: Tweet.profile.request.vtl
-    response: Tweet.profile.response.vtl
+    dataSource: getTweetCreatorFunction
+    request: Tweet.profile.batchInvoke.request.vtl
+    response: Tweet.profile.batchInvoke.response.vtl
+    caching:
+      keys:
+        - $context.identity.username
+        - $context.source.creator
+      ttl: 300
   - type: Tweet
     field: liked
     dataSource: likesTable
@@ -121,6 +184,11 @@ mappingTemplates:
   - type: Reply
     field: inReplyToUsers
     dataSource: usersTable
+    caching:
+      keys:
+        - $context.identity.username
+        - $context.source.inReplyToUserIds
+      ttl: 300
   - type: UnhydratedTweetsPage
     field: tweets
     dataSource: tweetsTable
@@ -138,6 +206,12 @@ mappingTemplates:
   - type: OtherProfile
     field: followedBy
     dataSource: relationshipsTable
+  - type: Conversation
+    field: otherUser
+    dataSource: usersTable
+  - type: Message
+    field: from
+    dataSource: usersTable
 
 functionConfigurations:
   - name: getFollowers
@@ -176,6 +250,18 @@ dataSources:
     name: relationshipsTable
     config:
       tableName: !Ref RelationshipsTable
+  - type: AMAZON_DYNAMODB
+    name: notificationsTable
+    config:
+      tableName: !Ref NotificationsTable
+  - type: AMAZON_DYNAMODB
+    name: conversationsTable
+    config:
+      tableName: !Ref ConversationsTable
+  - type: AMAZON_DYNAMODB
+    name: directMessagesTable
+    config:
+      tableName: !Ref DirectMessagesTable
   - type: AMAZON_DYNAMODB
     name: likeMutation
     config:
@@ -244,6 +330,22 @@ dataSources:
     name: replyFunction
     config:
       functionName: reply
+  - type: AWS_LAMBDA
+    name: searchFunction
+    config:
+      functionName: search
+  - type: AWS_LAMBDA
+    name: getHashTagFunction
+    config:
+      functionName: getHashTag
+  - type: AWS_LAMBDA
+    name: sendDirectMessageFunction
+    config:
+      functionName: sendDirectMessage
+  - type: AWS_LAMBDA
+    name: getTweetCreatorFunction
+    config:
+      functionName: getTweetCreator
 
 substitutions:
   TweetsTable: !Ref TweetsTable

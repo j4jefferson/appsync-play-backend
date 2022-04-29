@@ -134,6 +134,27 @@ fragment iTweetFields on ITweet {
 	... on Reply {
 		... replyFields
 	}
+}`
+
+const conversationFragment = `
+fragment conversationFields on Conversation {
+	id
+	otherUser {
+		...otherProfileFields
+	}
+	lastMessage
+	lastModified
+}
+`
+
+const messageFragment = `
+fragment messageFields on Message {
+	messageId
+	from {
+		... iProfileFields
+	}
+	message
+	timestamp
 }
 `
 
@@ -144,6 +165,8 @@ registerFragment('tweetFields', tweetFragment)
 registerFragment('replyFields', replyFragment)
 registerFragment('retweetFields', retweetFragment)
 registerFragment('iTweetFields', iTweetFragment)
+registerFragment('conversationFields', conversationFragment)
+registerFragment('messageFields', messageFragment)
 
 const we_invoke_confirmUserSignup = async (username, name, email) => {
 	const handler = require('../../functions/confirm-user-signup').handler
@@ -654,6 +677,89 @@ const a_user_calls_getFollowing = async (user, userId, limit, nextToken) => {
 	return result
 }
 
+const a_user_calls_search = async (user, mode, query, limit, nextToken) => {
+	const search = `
+	query search($query: String!, $mode: SearchMode! $limit: Int!, $nextToken: String) {
+    search(query: $query, mode: $mode, limit: $limit, nextToken: $nextToken) {
+			nextToken
+			results {
+				__typename
+				...on MyProfile {
+					...myProfileFields
+				}
+				...on OtherProfile {
+					...otherProfileFields
+				}
+				...on Tweet {
+					...tweetFields
+				}
+				...on Reply {
+					...replyFields
+				}
+			}
+		}
+  }`
+
+	const variables = {
+		query,
+		mode,
+		limit,
+		nextToken,
+	}
+
+	const data = await GraphQL(process.env.API_URL, search, variables, user.accessToken)
+
+	const result = data.search
+
+	console.log(`[${user.username}] - search for ${query}`)
+
+	return result
+}
+
+const a_user_calls_getHashTag = async (user, mode, hashTag, limit, nextToken) => {
+	const getHashTag = `
+	query getHashTag($hashTag: String!, $mode: HashTagMode! $limit: Int!, $nextToken: String) {
+    getHashTag(hashTag: $hashTag, mode: $mode, limit: $limit, nextToken: $nextToken) {
+			results {
+				__typename
+				...on MyProfile {
+					...myProfileFields
+				}
+				...on OtherProfile {
+					...otherProfileFields
+				}
+				...on Tweet {
+					...tweetFields
+				}
+				...on Reply {
+					...replyFields
+				}
+			}
+			nextToken
+		}
+  }`
+
+	const variables = {
+		hashTag,
+		mode,
+		limit,
+		nextToken,
+	}
+
+	const data = await GraphQL(
+		process.env.API_URL,
+		getHashTag,
+		variables,
+		user.accessToken
+	)
+
+	const result = data.getHashTag
+
+	console.log(`[${user.username}] - got hash tag ${hashTag}`)
+
+	return result
+}
+
 const we_invoke_getImageUploadUrl = async (username, extension, contentType) => {
 	const handler = require('../../functions/get-upload-url').handler
 
@@ -752,6 +858,100 @@ const we_invoke_distributeTweetsToFollower = async (event) => {
 	return await handler(event, context)
 }
 
+const a_user_calls_sendDirectMessage = async (user, otherUserId, message) => {
+	const sendDirectMessage = `mutation sendDirectMessage($otherUserId: ID!, $message: String!) {
+    sendDirectMessage(
+      otherUserId: $otherUserId
+      message: $message
+    ) {
+      ... conversationFields
+    }
+  }`
+	const variables = {
+		otherUserId,
+		message,
+	}
+
+	const data = await GraphQL(
+		process.env.API_URL,
+		sendDirectMessage,
+		variables,
+		user.accessToken
+	)
+	const result = data.sendDirectMessage
+
+	console.log(`[${user.username}] - sent DM to [${otherUserId}]`)
+
+	return result
+}
+
+const a_user_calls_listConversations = async (user, limit, nextToken) => {
+	const listConversations = `query listConversations($limit: Int!, $nextToken: String) {
+    listConversations(
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      conversations {
+        ... conversationFields
+      }
+      nextToken
+    }
+  }`
+	const variables = {
+		limit,
+		nextToken,
+	}
+
+	const data = await GraphQL(
+		process.env.API_URL,
+		listConversations,
+		variables,
+		user.accessToken
+	)
+	const result = data.listConversations
+
+	console.log(`[${user.username}] - fetched conversations`)
+
+	return result
+}
+
+const a_user_calls_getDirectMessages = async (
+	user,
+	otherUserId,
+	limit,
+	nextToken
+) => {
+	const getDirectMessages = `query getDirectMessages($otherUserId: ID!, $limit: Int!, $nextToken: String) {
+    getDirectMessages(
+      otherUserId: $otherUserId
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      messages {
+        ... messageFields
+      }
+      nextToken
+    }
+  }`
+	const variables = {
+		otherUserId,
+		limit,
+		nextToken,
+	}
+
+	const data = await GraphQL(
+		process.env.API_URL,
+		getDirectMessages,
+		variables,
+		user.accessToken
+	)
+	const result = data.getDirectMessages
+
+	console.log(`[${user.username}] - fetched direct messages with [${otherUserId}]`)
+
+	return result
+}
+
 module.exports = {
 	we_invoke_confirmUserSignup,
 	a_user_signs_up,
@@ -780,4 +980,9 @@ module.exports = {
 	a_user_calls_unfollow,
 	a_user_calls_getFollowers,
 	a_user_calls_getFollowing,
+	a_user_calls_search,
+	a_user_calls_getHashTag,
+	a_user_calls_sendDirectMessage,
+	a_user_calls_listConversations,
+	a_user_calls_getDirectMessages,
 }
