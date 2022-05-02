@@ -25,14 +25,16 @@ custom:
   stage: ${opt:stage, self:provider.stage}
   appSync:
     - ${file(serverless.appsync-api.yml)}
+
   serverless-layers:
     layersDeploymentBucket: ${ssm:/appsync-play-backend/${self:custom.stage}/layer-deployment-bucket}
-  appSyncCaching:
-    default:
-    prod:
-      behavior: PER_RESOLVER_CACHING
-      ttl: 3600
-      type: T2_SMALL
+
+  # appSyncCaching:
+  #   default:
+  #   prod:
+  #     behavior: PER_RESOLVER_CACHING
+  #     ttl: 3600
+  #     type: T2_SMALL
 
 functions:
   confirmUserSignup:
@@ -300,6 +302,19 @@ functions:
       - Effect: Allow
         Action: dynamodb:BatchGetItem
         Resource: !GetAtt UsersTable.Arn
+
+  getTweets:
+    handler: functions/get-tweets.handler
+    environment:
+      TIMELINES_TABLE: !Ref TweetsTable
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:GetItem
+        Resource: !GetAtt TweetsTable.Arn
+      - Effect: Allow
+        Action: dynamodb:Query
+        Resource: !GetAtt TweetsTable.Arn
 
 resources:
   Resources:

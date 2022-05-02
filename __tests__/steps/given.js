@@ -40,6 +40,37 @@ const an_appsync_context = (identity, args, result, source, info, prev) => {
 	}
 }
 
+const my_authenticated_user = async () => {
+	const username = process.env.MY_TEST_USER
+	const password = process.env.MY_TEST_USER_PASSWORD
+	const name = 'James Jefferson'
+	const email = 'james@tockinsurance.com'
+
+	const cognito = new AWS.CognitoIdentityServiceProvider()
+	const clientId = process.env.WEB_USER_POOL_CLIENT_ID
+
+	const auth = await cognito
+		.initiateAuth({
+			AuthFlow: 'USER_PASSWORD_AUTH',
+			ClientId: clientId,
+			AuthParameters: {
+				USERNAME: username,
+				PASSWORD: password,
+			},
+		})
+		.promise()
+
+	console.log(`[${email}] - has signed in`)
+
+	return {
+		username,
+		name,
+		email,
+		idToken: auth.AuthenticationResult.IdToken,
+		accessToken: auth.AuthenticationResult.AccessToken,
+	}
+}
+
 const an_authenticated_user = async () => {
 	const { name, email, password } = a_random_user()
 
@@ -112,6 +143,7 @@ const a_user_follows_another = async (userId, otherUserId) => {
 module.exports = {
 	a_random_user,
 	an_appsync_context,
+	my_authenticated_user,
 	an_authenticated_user,
 	a_user_follows_another,
 }

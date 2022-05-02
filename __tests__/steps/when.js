@@ -375,21 +375,64 @@ const a_user_calls_tweet = async (user, text) => {
 	return newTweet
 }
 
-const a_user_calls_getTweets = async (user, userId, limit, nextToken) => {
-	const getTweets = `query getTweets($userId: ID!, $limit: Int!, $nextToken: String) {
-    getTweets(userId: $userId, limit: $limit, nextToken: $nextToken) {
-      nextToken
-      tweets {
-        ... iTweetFields
+// const a_user_calls_getTweets = async (user, userId, limit, nextToken) => {
+// 	const getTweets = `query getTweets($userId: ID!, $limit: Int!, $nextToken: String) {
+//     getTweets(userId: $userId, limit: $limit, nextToken: $nextToken) {
+//       nextToken
+//       tweets {
+//         ... iTweetFields
+//       }
+//     }
+//   }`
+// 	const variables = {
+// 		userId,
+// 		limit,
+// 		nextToken,
+// 	}
+
+// 	const data = await GraphQL(
+// 		process.env.API_URL,
+// 		getTweets,
+// 		variables,
+// 		user.accessToken
+// 	)
+// 	const result = data.getTweets
+
+// 	console.log(`[${user.username}] - posted new tweet`)
+
+// 	return result
+// }
+
+const a_user_calls_getTweets = async (
+	user,
+	userId,
+	limit,
+	backToken,
+	forwardToken,
+	hasAfter,
+	direction
+) => {
+	const getTweets = `query getTweets($userId: ID!, $limit: Int!, $backToken: String, $forwardToken: String!, $hasAfter: Boolean!, $direction: DirectionType!) {
+    getTweets(userId: $userId, limit: $limit, backToken: $backToken, forwardToken: $forwardToken, hasAfter: $hasAfter, direction: $direction) {
+			tweets {
+				... iTweetFields
       }
+			backToken
+			forwardToken
+			hasAfter
     }
   }`
+
 	const variables = {
 		userId,
 		limit,
-		nextToken,
+		backToken,
+		forwardToken,
+		hasAfter,
+		direction,
 	}
 
+	console.log('getting the tweets now...')
 	const data = await GraphQL(
 		process.env.API_URL,
 		getTweets,
@@ -398,7 +441,7 @@ const a_user_calls_getTweets = async (user, userId, limit, nextToken) => {
 	)
 	const result = data.getTweets
 
-	console.log(`[${user.username}] - posted new tweet`)
+	console.log(`[${user.username}] - got tweets looking [${direction}]`)
 
 	return result
 }

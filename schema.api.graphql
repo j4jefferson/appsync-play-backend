@@ -13,7 +13,14 @@ type Query {
 
 	getMyTimeline(limit: Int!, nextToken: String): UnhydratedTweetsPage!
 
-	getTweets(userId: ID!, limit: Int!, nextToken: String): TweetsPage!
+	getTweets(
+		userId: ID!
+		limit: Int!
+		backToken: String
+		forwardToken: String!
+		hasAfter: Boolean!
+		direction: DirectionType!
+	): TweetsPage!
 
 	getLikes(userId: ID!, limit: Int!, nextToken: String): UnhydratedTweetsPage!
 
@@ -128,6 +135,11 @@ enum NotificationType {
 	DMed
 }
 
+enum DirectionType {
+	Forward
+	Backward
+}
+
 input ProfileInput {
 	name: String!
 	imageUrl: AWSURL
@@ -235,7 +247,9 @@ type Retweet implements ITweet {
 
 type TweetsPage {
 	tweets: [ITweet!]
-	nextToken: String
+	backToken: String
+	forwardToken: String!
+	hasAfter: Boolean!
 }
 
 type UnhydratedTweetsPage {

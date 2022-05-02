@@ -1,6 +1,6 @@
 name: appsyncplaybackend
 schema: schema.api.graphql
-caching: ${self:custom.appSyncCaching.${self:custom.stage}, self:custom.appSyncCaching.default}
+# caching: ${self:custom.appSyncCaching.${self:custom.stage}, self:custom.appSyncCaching.default}
 authenticationType: AMAZON_COGNITO_USER_POOLS
 userPoolConfig:
   awsRegion: eu-west-1
@@ -20,10 +20,10 @@ mappingTemplates:
   - type: Query
     field: getProfile
     dataSource: usersTable
-    caching:
-      keys:
-        - $context.arguments.screenName
-      ttl: 300
+    # caching:
+    #   keys:
+    #     - $context.arguments.screenName
+    #   ttl: 300
   - type: Query
     field: getImageUploadUrl
     dataSource: getImageUploadUrlFunction
@@ -31,7 +31,9 @@ mappingTemplates:
     response: false
   - type: Query
     field: getTweets
-    dataSource: tweetsTable
+    dataSource: getTweetsFunction
+    request: false
+    response: false
   - type: Query
     field: getMyTimeline
     dataSource: timelinesTable
@@ -134,31 +136,31 @@ mappingTemplates:
     dataSource: getTweetCreatorFunction
     request: Tweet.profile.batchInvoke.request.vtl
     response: Tweet.profile.batchInvoke.response.vtl
-    caching:
-      keys:
-        - $context.identity.username
-        - $context.source.creator
-      ttl: 300
+    # caching:
+    #   keys:
+    #     - $context.identity.username
+    #     - $context.source.creator
+    #   ttl: 300
   - type: Retweet
     field: profile
     dataSource: getTweetCreatorFunction
     request: Tweet.profile.batchInvoke.request.vtl
     response: Tweet.profile.batchInvoke.response.vtl
-    caching:
-      keys:
-        - $context.identity.username
-        - $context.source.creator
-      ttl: 300
+    # caching:
+    #   keys:
+    #     - $context.identity.username
+    #     - $context.source.creator
+    #   ttl: 300
   - type: Reply
     field: profile
     dataSource: getTweetCreatorFunction
     request: Tweet.profile.batchInvoke.request.vtl
     response: Tweet.profile.batchInvoke.response.vtl
-    caching:
-      keys:
-        - $context.identity.username
-        - $context.source.creator
-      ttl: 300
+    # caching:
+    #   keys:
+    #     - $context.identity.username
+    #     - $context.source.creator
+    #   ttl: 300
   - type: Tweet
     field: liked
     dataSource: likesTable
@@ -184,11 +186,11 @@ mappingTemplates:
   - type: Reply
     field: inReplyToUsers
     dataSource: usersTable
-    caching:
-      keys:
-        - $context.identity.username
-        - $context.source.inReplyToUserIds
-      ttl: 300
+    # caching:
+    #   keys:
+    #     - $context.identity.username
+    #     - $context.source.inReplyToUserIds
+    #   ttl: 300
   - type: UnhydratedTweetsPage
     field: tweets
     dataSource: tweetsTable
@@ -346,6 +348,10 @@ dataSources:
     name: getTweetCreatorFunction
     config:
       functionName: getTweetCreator
+  - type: AWS_LAMBDA
+    name: getTweetsFunction
+    config:
+      functionName: getTweets
 
 substitutions:
   TweetsTable: !Ref TweetsTable
