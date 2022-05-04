@@ -41,8 +41,8 @@ const an_appsync_context = (identity, args, result, source, info, prev) => {
 }
 
 const my_authenticated_user = async () => {
-	const username = process.env.MY_TEST_USER
-	const password = process.env.MY_TEST_USER_PASSWORD
+	const username = '5667e483-54b8-4e96-89c4-4c5d761d8c67'
+	const password = 'nation123'
 	const name = 'James Jefferson'
 	const email = 'james@tockinsurance.com'
 

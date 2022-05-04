@@ -76,7 +76,7 @@ describe('Given an authenticated user', () => {
 		it('A user can find his tweet when he searches for the text', async () => {
 			await retry(
 				async () => {
-					const { results } = await when.a_user_calls_search(
+					const { results, nextToken } = await when.a_user_calls_search(
 						userA,
 						SearchModes.LATEST,
 						text,
@@ -109,7 +109,7 @@ describe('Given an authenticated user', () => {
 			it('A user can find his reply when he searches for the reply text', async () => {
 				await retry(
 					async () => {
-						const { results } = await when.a_user_calls_search(
+						const { results, nextToken } = await when.a_user_calls_search(
 							userA,
 							SearchModes.LATEST,
 							replyText,

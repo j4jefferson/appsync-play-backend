@@ -2,80 +2,78 @@
 const DynamoDB = require('aws-sdk/clients/dynamodb')
 const DocumentClient = new DynamoDB.DocumentClient()
 const chance = require('chance').Chance()
+const { getLatestTweetByUserId } = require('../lib/tweets')
 const { TWEETS_TABLE } = process.env
 
 module.exports.handler = async (event) => {
 	const { userId, limit, backToken, forwardToken, hasAfter, direction } =
 		event.arguments
-	// const user = event.identity.username
 
 	//get the most recent tweet
-	const param = {
-		KeyConditionExpression: 'creator = :userId',
-		ExpressionAttributeValues: {
-			':userId': userId,
-		},
-		TableName: TWEETS_TABLE,
-		IndexName: 'byCreator',
-		Limit: 1,
-	}
-
-	const tweetResp = await DocumentClient.query({
-		params: param,
-	}).promise()
-
-	const latestTweetId = tweetResp.Item[0].id
+	const latestTweetId = getLatestTweetByUserId(userId)
 
 	//decode/init the token for this request
-	const ft = forwardToken === 'Empty' ? latestTweetId : forwardToken
-	const bt = backToken === 'Empty' ? null : backToken
-	const requestToken = direction === 'Forward' ? parseToken(ft) : parseToken(bt)
+	//assumption: frontend will always pass a most recent tweetId as forwardToken
+	const ft = forwardToken === 'Empty' ? null : parseToken(forwardToken)
+	const bt = backToken === 'Empty' ? null : parseToken(backToken)
+	const requestToken = direction === 'Forward' ? ft : bt
 	const scanDirection = direction === 'Forward' ? true : false
 
 	if (scanDirection) {
 		if (!hasAfter && latestTweetId === forwardToken) {
+			console.log('No more future tweets right now!!')
 			return
 		}
 	}
 
 	//Query the DB
 	let params = {
+		TableName: TWEETS_TABLE,
 		KeyConditionExpression: 'creator = :userId',
 		ExpressionAttributeValues: {
 			':userId': userId,
 		},
-		TableName: TWEETS_TABLE,
 		IndexName: 'byCreator',
 		Limit: limit,
 		ScanIndexForward: scanDirection,
-		ExclusiveStartKey: requestToken,
+	}
+	if (requestToken !== null) {
+		params = { ...params, ExclusiveStartKey: requestToken }
 	}
 
-	const resp = await DocumentClient.query(params).promise()
+	const resp = await DocumentClient.query(params, function (err, data) {
+		if (err) console.log(err)
+		else console.log(data)
+	}).promise()
 
 	//setup the next tokens
 	let returnObj
 	if (scanDirection) {
 		//order most recent last
+		console.log(`Lastevaluated key for forward search is: [${resp.LastEvaluatedKey}]`)
+		const latestForwardKey =
+			resp.LastEvaluatedKey === undefined ? 'Empty' : genToken(resp.LastEvaluatedKey)
 		returnObj = {
-			tweets: resp.Items,
+			tweets: resp.Items || [],
 			backToken,
-			forwardToken: genToken(resp.LastEvaluatedKey),
-			hasAfter: resp.LastEvaluatedKey === latestTweetId ? false : true,
+			forwardToken: latestForwardKey,
+			hasAfter: resp.LastEvaluatedKey === undefined ? false : true,
 		}
 	} else {
 		//order most recent first
+		console.log(
+			`Lastevaluated key for backward search is: [${resp.LastEvaluatedKey}]`
+		)
+		console.log(resp)
 		returnObj = {
-			tweets: resp.Items,
+			tweets: resp.Items || [],
 			backToken: genToken(resp.LastEvaluatedKey),
-			forwardToken: forwardToken,
-			hasAfter,
+			forwardToken: forwardToken || 'Empty',
+			hasAfter: false,
 		}
 	}
 
-	return {
-		returnObj,
-	}
+	return returnObj
 }
 
 /**

@@ -1,9 +1,8 @@
-#if($context.source.tweets.size() == 0)
+#if ($context.source.tweets.size() == 0)
   #return([])
 #end
 
 #set ($tweets = [])
-
 #foreach ($item in $context.source.tweets)
   #set ($tweet = {})
   #set ($tweet.id = $item.tweetId)

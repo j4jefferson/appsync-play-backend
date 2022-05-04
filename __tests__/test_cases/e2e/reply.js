@@ -156,6 +156,7 @@ describe('Given authenticated users A, B and C', () => {
 
 			it('User B should see his reply when he calls getMyTimeline', async () => {
 				const { tweets } = await when.a_user_calls_getMyTimeline(userB, 25)
+				console.log(tweets)
 
 				expect(tweets).toHaveLength(2)
 				expect(tweets[0]).toMatchObject({

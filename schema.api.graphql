@@ -13,14 +13,16 @@ type Query {
 
 	getMyTimeline(limit: Int!, nextToken: String): UnhydratedTweetsPage!
 
-	getTweets(
+	getTweets(userId: ID!, limit: Int!, nextToken: String): TweetsPage!
+
+	getTwoWayTweets(
 		userId: ID!
 		limit: Int!
 		backToken: String
 		forwardToken: String!
 		hasAfter: Boolean!
 		direction: DirectionType!
-	): TweetsPage!
+	): TweetsTwoWayPage!
 
 	getLikes(userId: ID!, limit: Int!, nextToken: String): UnhydratedTweetsPage!
 
@@ -246,6 +248,11 @@ type Retweet implements ITweet {
 }
 
 type TweetsPage {
+	tweets: [ITweet!]
+	nextToken: String
+}
+
+type TweetsTwoWayPage {
 	tweets: [ITweet!]
 	backToken: String
 	forwardToken: String!

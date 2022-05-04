@@ -375,35 +375,35 @@ const a_user_calls_tweet = async (user, text) => {
 	return newTweet
 }
 
-// const a_user_calls_getTweets = async (user, userId, limit, nextToken) => {
-// 	const getTweets = `query getTweets($userId: ID!, $limit: Int!, $nextToken: String) {
-//     getTweets(userId: $userId, limit: $limit, nextToken: $nextToken) {
-//       nextToken
-//       tweets {
-//         ... iTweetFields
-//       }
-//     }
-//   }`
-// 	const variables = {
-// 		userId,
-// 		limit,
-// 		nextToken,
-// 	}
+const a_user_calls_getTweets = async (user, userId, limit, nextToken) => {
+	const getTweets = `query getTweets($userId: ID!, $limit: Int!, $nextToken: String) {
+    getTweets(userId: $userId, limit: $limit, nextToken: $nextToken) {
+      nextToken
+      tweets {
+        ... iTweetFields
+      }
+    }
+  }`
+	const variables = {
+		userId,
+		limit,
+		nextToken,
+	}
 
-// 	const data = await GraphQL(
-// 		process.env.API_URL,
-// 		getTweets,
-// 		variables,
-// 		user.accessToken
-// 	)
-// 	const result = data.getTweets
+	const data = await GraphQL(
+		process.env.API_URL,
+		getTweets,
+		variables,
+		user.accessToken
+	)
+	const result = data.getTweets
 
-// 	console.log(`[${user.username}] - posted new tweet`)
+	console.log(`[${user.username}] - posted new tweet`)
 
-// 	return result
-// }
+	return result
+}
 
-const a_user_calls_getTweets = async (
+const a_user_calls_getTwoWayTweets = async (
 	user,
 	userId,
 	limit,
@@ -412,8 +412,8 @@ const a_user_calls_getTweets = async (
 	hasAfter,
 	direction
 ) => {
-	const getTweets = `query getTweets($userId: ID!, $limit: Int!, $backToken: String, $forwardToken: String!, $hasAfter: Boolean!, $direction: DirectionType!) {
-    getTweets(userId: $userId, limit: $limit, backToken: $backToken, forwardToken: $forwardToken, hasAfter: $hasAfter, direction: $direction) {
+	const getTwoWayTweets = `query getTwoWayTweets($userId: ID!, $limit: Int!, $backToken: String, $forwardToken: String!, $hasAfter: Boolean!, $direction: DirectionType!) {
+    getTwoWayTweets(userId: $userId, limit: $limit, backToken: $backToken, forwardToken: $forwardToken, hasAfter: $hasAfter, direction: $direction) {
 			tweets {
 				... iTweetFields
       }
@@ -432,14 +432,13 @@ const a_user_calls_getTweets = async (
 		direction,
 	}
 
-	console.log('getting the tweets now...')
 	const data = await GraphQL(
 		process.env.API_URL,
-		getTweets,
+		getTwoWayTweets,
 		variables,
 		user.accessToken
 	)
-	const result = data.getTweets
+	const result = data.getTwoWayTweets
 
 	console.log(`[${user.username}] - got tweets looking [${direction}]`)
 
@@ -1012,6 +1011,7 @@ module.exports = {
 	we_invoke_distributeTweetsToFollower,
 	a_user_calls_tweet,
 	a_user_calls_getTweets,
+	a_user_calls_getTwoWayTweets,
 	a_user_calls_getMyTimeline,
 	a_user_calls_like,
 	a_user_calls_unlike,
